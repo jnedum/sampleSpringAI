@@ -1,12 +1,16 @@
-package com.example.sampleSpringAI;
+package com.example.sampleSpringAI.microservices;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
@@ -21,16 +25,30 @@ public class OrderController {
         Long id = 0L;
         Random random = new Random();
         OrderStatus[] statuses = OrderStatus.values();
+
+        //generate a date from one month ago untiil now
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneMonthAgo = now.minusMonths(1);
+        ZoneId zoneId = ZoneId.systemDefault(); // Or choose a specific zone like ZoneId.of("America/New_York")
+        long startMillis = oneMonthAgo.atZone(zoneId).toInstant().toEpochMilli();
+        long endMillis = now.atZone(zoneId).toInstant().toEpochMilli();
+
         for (int i = 0; i < 10; i++) {
             Order order = new Order();
             order.setId(++id);
             order.setCustomerId(id);
             order.setStatus(statuses[random.nextInt(statuses.length)]);
             order.setItems(new ArrayList<OrderItem>());
+
+            // Generate a random date since last month
+            long randomMillis = random.nextLong(startMillis, endMillis + 1);
+            order.setOrderEntryDate( LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(randomMillis), zoneId) );
+
             orders.put(order.getId(), order);
         }
     }
 
+    @Tool(description = "Creates and order, given a customer ID")
     @PostMapping
     public ResponseEntity<Order> createOrder(@RequestBody Order order) {
         long id = idCounter.incrementAndGet();
@@ -41,6 +59,7 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 
+    @Tool(description = "Gets an order given its ID")
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrder(@PathVariable Long id) {
         Order order = orders.get(id);
@@ -49,6 +68,7 @@ public class OrderController {
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
+    @Tool(description = "Gets all orders")
     @GetMapping
     public ResponseEntity<List<Order>> getAllOrders() {
         return ResponseEntity.ok(new ArrayList<>(orders.values()));

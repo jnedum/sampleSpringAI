@@ -1,5 +1,6 @@
-package com.example.sampleSpringAI;
+package com.example.sampleSpringAI.microservices;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,21 @@ public class ProductController {
 
     private final Map<Long, Product> products = new ConcurrentHashMap<>();
     private final AtomicLong idCounter = new AtomicLong();
+
+    @PostConstruct
+    private void populateProducts() {
+        Long id = 0L;
+        Random random = new Random();
+        for (int i = 0; i < 100; i++) {
+            Product product = new Product(
+                    ++id,
+                    "item-" + id,
+                    "item-" + id + "-desription",
+                    1 + ( 99* random.nextDouble())
+            );
+            products.put(product.id(), product);
+        }
+    }
 
     @PostMapping
     public ResponseEntity<Product> createProduct(@RequestBody Product product) {

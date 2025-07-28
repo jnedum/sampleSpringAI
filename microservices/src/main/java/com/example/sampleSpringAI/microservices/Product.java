@@ -1,4 +1,4 @@
-package com.example.sampleSpringAI;
+package com.example.sampleSpringAI.microservices;
 
 public record Product(
         Long id,
